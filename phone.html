@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<style type="text/css" media="screen">
+button.active{
+  background:red;
+}
+</style>
+<link rel="stylesheet" href="/leaflet.css" />
+
+</head>
+<body>
+  <div id="phone-position">
+    Phone:
+    <span class='lat'></span>,
+    <span class='lon'></span><br/>
+    +/- <span class='accuracy'></span>m
+  </div>
+  <div id="drone-position">
+    Drone: 
+    <span class='lat'></span>,
+    <span class='lon'></span>
+    <p>Distance:
+      <span class='distance'></span>
+    </p>
+  </div>
+  <button id='takeoff'>Takeoff</button>
+  <button id='land'>Land</button>
+  <button id='move'>Move</button>
+  <button id='stop'>stop</button>
+  <div id="map" style="width: 600px; height: 400px"></div>
+
+
+
+  <script src="leaflet.js"></script>
+
+<script src="jquery.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('/');
+  var lat, lon, map, watch;
+  var stop = true;
+  
+  var options = {
+    enableHighAccuracy: true,
+    timeout: 5000,
+    maximumAge: 0
+  };
+
+  function onPositionError(err){
+    console.log(err)
+  }
+  
+  function onPositionUpdate(position)
+   {
+       lat = position.coords.latitude;
+       lon = position.coords.longitude;
+       accuracy = position.coords.accuracy;
+       $('#phone-position .lat').text(lat)
+       $('#phone-position .lon').text(lon)
+       $('#phone-position .accuracy').text(accuracy)
+       socket.emit('phone', {lat: lat, lon: lon, accuracy: accuracy})
+   }
+
+   $(function(){
+     
+     id = navigator.geolocation.watchPosition(onPositionUpdate, onPositionError, options);
+
+     $('#takeoff').click(function(){
+       socket.emit('takeoff')
+     })
+     $('#land').click(function(){
+       socket.emit('land')
+     })
+     $('#move').click(function(){
+       stop = false;
+     })
+     $('#stop').click(function(){
+       stop = true;
+     })
+   })
+
+  socket.on('connect', function(){
+
+
+    console.log('connected')
+    
+    socket.on('position', function(data){
+      // console.log(data)
+      $('#drone-position .lat').text(data.lat)
+      $('#drone-position .lon').text(data.lon)
+      $('#drone-position .distance').text(data.distance)
+    })
+  })
+  
+</script>
+</body>
+</html>

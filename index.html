@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<style type="text/css" media="screen">
+button.active{
+  background:red;
+}
+</style>
+<link rel="stylesheet" href="/leaflet.css" />
+
+</head>
+<body>
+  <div id="phone-position">
+    Phone:
+    <span class='lat'></span>,
+    <span class='lon'></span>
+    (+/-<span class='accuracy'></span>m)
+  </div>
+  <div id="drone-position">
+    Drone: 
+    <span class='lat'></span>,
+    <span class='lon'></span>
+    <p>Distance:
+      <span class='distance'></span>
+    </p>
+  </div>
+  <button id='takeoff'>Takeoff</button>
+  <button id='land'>Land</button>
+  <button id='move'>Move</button>
+  <button id='stop'>stop</button>
+  <div id="map" style="width: 1000px; height: 600px"></div>
+
+
+  <script src="http://maps.google.com/maps/api/js?v=3.2&sensor=false"></script>
+  <script src="leaflet.js"></script>
+  <script src="leaflet-google.js"></script>
+
+<script src="jquery.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('/');
+  var lat, lon, map, laptop, drone, phone, phonePath;
+  var stop = true;
+  
+  var phoneIcon = L.icon({
+      iconUrl: 'images/iphone.png'
+  });
+
+  var laptopIcon = L.icon({
+      iconUrl: 'images/laptop.png'
+  });
+  
+  var droneIcon = L.icon({
+      iconUrl: 'images/copter.png'
+  });
+  
+
+  function initMap(lat, lon){
+    map = L.map('map').setView([lat, lon], 20);
+
+    var googleLayer = new L.Google('SATELLITE');
+    map.addLayer(googleLayer);
+    
+    laptop = L.marker([lat, lon], {icon: laptopIcon}).addTo(map)
+  }
+  
+  function onPositionError(err){
+    console.log(err)
+  }
+  
+   $(function(){
+     $('#takeoff').click(function(){
+       socket.emit('takeoff')
+     })
+     $('#land').click(function(){
+       socket.emit('land')
+     })
+     $('#move').click(function(){
+       stop = false;
+     })
+     $('#stop').click(function(){
+       stop = true;
+     })
+   })
+
+  socket.on('connect', function(){
+
+
+    console.log('connected')
+    
+    socket.on('position', function(data){
+      if(data.lat != undefined){
+        if (drone == null){
+          drone = L.marker([data.lat, data.lon], {icon: droneIcon}).addTo(map)
+        }
+        drone.setLatLng([data.lat, data.lon])
+        $('#drone-position .lat').text(data.lat)
+        $('#drone-position .lon').text(data.lon)
+        $('#drone-position .distance').text(data.distance)
+      }
+    })
+    
+    socket.on('phone', function(data){
+      if(data.lat != undefined){
+        if (laptop == null){
+          initMap(data.lat, data.lon)
+        }
+        if (phone == null){
+          phone = L.marker([data.lat, data.lon], {icon: phoneIcon}).addTo(map)
+          phonePath = L.polyline([[data.lat, data.lon]], {color: 'red'}).addTo(map);
+        } else {
+          phone.setLatLng([data.lat, data.lon])
+          phonePath.addLatLng([data.lat, data.lon])
+        }
+        $('#phone-position .lat').text(data.lat)
+        $('#phone-position .lon').text(data.lon)
+        $('#phone-position .accuracy').text(data.accuracy)
+      }
+    })
+  })
+  
+
+  // L.marker([51.5, -0.09]).addTo(map)
+  // 
+  //   .bindPopup("<b>Hello world!</b><br />I am a popup.").openPopup();
+  // 
+  // L.circle([51.508, -0.11], 500, {
+  // 
+  //   color: 'red',
+  // 
+  //   fillColor: '#f03',
+  // 
+  //   fillOpacity: 0.5
+  // 
+  // }).addTo(map).bindPopup("I am a circle.");
+  // 
+  // L.polygon([
+  // 
+  //   [51.509, -0.08],
+  // 
+  //   [51.503, -0.06],
+  // 
+  //   [51.51, -0.047]
+  // 
+  // ]).addTo(map).bindPopup("I am a polygon.");
+  
+  // L.MultiPolyline([[51.509, -0.08],[51.503, -0.06],[51.51, -0.047]]).addTo(map)
+  // 
+  // var popup = L.popup();
+  // 
+  // function onMapClick(e) {
+  //   popup
+  //     .setLatLng(e.latlng)
+  //     .setContent("You clicked the map at " + e.latlng.toString())
+  //     .openOn(map);
+  // }
+  // map.on('click', onMapClick);
+</script>
+</body>
+</html>
