@@ -16,6 +16,8 @@ app.get('/phone', function(req, res) {
 
 server.listen(8080);
 
+require("dronestream").listen(server);
+
 io.sockets.on('connection', function(socket) {
   console.log('connection')
 
