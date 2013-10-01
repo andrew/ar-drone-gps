@@ -20,9 +20,24 @@ body{
   height: 400px;
   float:left;
 }
+#data, #controls{
+  width:50%;
+  float:left;
+}
 #droneStream canvas{
   width: 100%;
   height: 400px;
+}
+.section{
+  width:33%;
+  float:left;
+}
+.section button{
+  padding:5px;
+  background:#fff;
+  border:none;
+  min-width:100px;
+  cursor:pointer;
 }
 </style>
 <link rel="stylesheet" href="/leaflet.css" />
@@ -31,121 +46,137 @@ body{
 <body>
   <div id="map"></div>
   <div id='droneStream'></div>
-  <div id="phone-position">
-    Phone:
-    <span class='lat'></span>,
-    <span class='lon'></span>
-    (+/-<span class='accuracy'></span>m)
-  </div>
-  <div id="drone-position">
-    Drone: 
-    <span class='lat'></span>,
-    <span class='lon'></span>
-    <p>Distance:
-      <span class='distance'></span>
-    </p>
-  </div>
-  <button id='takeoff'>Takeoff</button>
-  <button id='land'>Land</button>
-  <button id='move'>Move</button>
-  <button id='stop'>stop</button>
+  <div id='controls'>
+    <div class='section'>
+      <button id='takeoff'>Takeoff</button><br />
+      <button id='land'>Land</button><br />
+      <button id='reset'>Reset</button>
+    </div>
+    <div class='section'>
+      <button id='go'>Go to waypoint</button><br />
+      <button id='home'>Return Home</button><br />
+      <button id='clear'>Clear Route</button>
+    </div>
+    <div class='section'>
+      <button id='follow'>Follow me</button>
+      <button id='manual'>Manual Control</button>
+      <button id='stop'>Stop</button>
+    </div>
 
 
+
+  </div>
+  <div id='data'>
+    <div id="phone-position">
+      Phone:
+      <span class='lat'></span>,
+      <span class='lon'></span>
+      (+/-<span class='accuracy'></span>m)
+    </div>
+    <div id="drone-position">
+      Drone: 
+      <span class='lat'></span>,
+      <span class='lon'></span>
+      <p>Distance:
+        <span class='distance'></span>
+      </p>
+    </div>
+  </div>
 
   <script src="http://maps.google.com/maps/api/js?v=3.2&sensor=false"></script>
   <script src="leaflet.js"></script>
   <script src="leaflet-google.js"></script>
   <script src="/dronestream/nodecopter-client.js"></script>
-<script src="jquery.js"></script>
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  var socket = io.connect('/');
-  var lat, lon, map, laptop, drone, phone, phonePath;
-  var stop = true;
+  <script src="jquery.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io.connect('/');
+    var lat, lon, map, laptop, drone, phone, phonePath;
+    var stop = true;
   
-  var phoneIcon = L.icon({
-      iconUrl: 'images/iphone.png'
-  });
+    var phoneIcon = L.icon({
+        iconUrl: 'images/iphone.png'
+    });
 
-  var laptopIcon = L.icon({
-      iconUrl: 'images/laptop.png'
-  });
+    var laptopIcon = L.icon({
+        iconUrl: 'images/laptop.png'
+    });
   
-  var droneIcon = L.icon({
-      iconUrl: 'images/copter.png'
-  });
+    var droneIcon = L.icon({
+        iconUrl: 'images/copter.png'
+    });
 
-  new NodecopterStream(document.getElementById("droneStream"));
+    new NodecopterStream(document.getElementById("droneStream"));
   
-  navigator.geolocation.getCurrentPosition(initMap, defaultMap, { enableHighAccuracy:true });
+    navigator.geolocation.getCurrentPosition(initMap, defaultMap, { enableHighAccuracy:true });
 
-  function initMap(position){
-    lat = position.coords.latitude;
-    lon = position.coords.longitude;
+    function initMap(position){
+      lat = position.coords.latitude;
+      lon = position.coords.longitude;
     
-    map = L.map('map').setView([lat, lon], 20);
+      map = L.map('map').setView([lat, lon], 20);
 
-    var googleLayer = new L.Google('SATELLITE');
-    map.addLayer(googleLayer);
+      var googleLayer = new L.Google('SATELLITE');
+      map.addLayer(googleLayer);
     
-    laptop = L.marker([lat, lon], {icon: laptopIcon}).addTo(map)
-  }
+      laptop = L.marker([lat, lon], {icon: laptopIcon}).addTo(map)
+    }
   
-  function defaultMap(err){
-    console.log(err)
-    initMap({coords: { latitude: 51, longitude: 2 }})
-  }
+    function defaultMap(err){
+      console.log(err)
+      initMap({coords: { latitude: 51, longitude: 2 }})
+    }
   
-   $(function(){
-     $('#takeoff').click(function(){
-       socket.emit('takeoff')
+     $(function(){
+       $('#takeoff').click(function(){
+         socket.emit('takeoff')
+       })
+       $('#land').click(function(){
+         socket.emit('land')
+       })
+       $('#move').click(function(){
+         stop = false;
+       })
+       $('#stop').click(function(){
+         stop = true;
+       })
      })
-     $('#land').click(function(){
-       socket.emit('land')
-     })
-     $('#move').click(function(){
-       stop = false;
-     })
-     $('#stop').click(function(){
-       stop = true;
-     })
-   })
 
-  socket.on('connect', function(){
+    socket.on('connect', function(){
 
 
-    console.log('connected')
+      console.log('connected')
     
-    socket.on('position', function(data){
-      if(data.lat != undefined){
-        if (drone == null){
-          drone = L.marker([data.lat, data.lon], {icon: droneIcon}).addTo(map)
+      socket.on('position', function(data){
+        if(data.lat != undefined){
+          if (drone == null){
+            drone = L.marker([data.lat, data.lon], {icon: droneIcon}).addTo(map)
+          }
+          drone.setLatLng([data.lat, data.lon])
+          $('#drone-position .lat').text(data.lat)
+          $('#drone-position .lon').text(data.lon)
+          $('#drone-position .distance').text(data.distance)
         }
-        drone.setLatLng([data.lat, data.lon])
-        $('#drone-position .lat').text(data.lat)
-        $('#drone-position .lon').text(data.lon)
-        $('#drone-position .distance').text(data.distance)
-      }
+      })
+    
+      socket.on('phone', function(data){
+        if(data.lat != undefined){
+          if (laptop == null){
+            initMap(data.lat, data.lon)
+          }
+          if (phone == null){
+            phone = L.marker([data.lat, data.lon], {icon: phoneIcon}).addTo(map)
+            phonePath = L.polyline([[data.lat, data.lon]], {color: 'red'}).addTo(map);
+          } else {
+            phone.setLatLng([data.lat, data.lon])
+            phonePath.addLatLng([data.lat, data.lon])
+          }
+          $('#phone-position .lat').text(data.lat)
+          $('#phone-position .lon').text(data.lon)
+          $('#phone-position .accuracy').text(data.accuracy)
+        }
+      })
     })
-    
-    socket.on('phone', function(data){
-      if(data.lat != undefined){
-        if (laptop == null){
-          initMap(data.lat, data.lon)
-        }
-        if (phone == null){
-          phone = L.marker([data.lat, data.lon], {icon: phoneIcon}).addTo(map)
-          phonePath = L.polyline([[data.lat, data.lon]], {color: 'red'}).addTo(map);
-        } else {
-          phone.setLatLng([data.lat, data.lon])
-          phonePath.addLatLng([data.lat, data.lon])
-        }
-        $('#phone-position .lat').text(data.lat)
-        $('#phone-position .lon').text(data.lon)
-        $('#phone-position .accuracy').text(data.accuracy)
-      }
-    })
-  })
-</script>
+  </script>
 </body>
 </html>
