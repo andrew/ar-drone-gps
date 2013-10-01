@@ -29,29 +29,26 @@ io.sockets.on('connection', function(socket) {
   socket.on('land', function(data){
     console.log('land', data)
     client.land()
-  })  
+  })
   
+  socket.on('reset', function(data){
+    console.log('reset', data)
+    client.disableEmergency()
+  })
   socket.on('phone', function(data){
     console.log('phone', data)
     targetLat = data.lat
     targetLon = data.lon
     phoneAccuracy = data.accuracy
   })  
-  
   socket.on('stop', function(data){
-    console.log('stop', data)
-    targetYaw = null
-    targetLat = null
-    targetLon = null
-    client.stop()
+    stop()
   })  
 
   setInterval(function(){
-    io.sockets.emit('position', {lat: currentLat, lon: currentLon, distance: currentDistance})
-    io.sockets.emit('drone', {lat: currentLat, lon: currentLon, yaw: currentYaw})
+    io.sockets.emit('drone', {lat: currentLat, lon: currentLon, yaw: currentYaw, distance: currentDistance, battery: battery})
     io.sockets.emit('phone', {lat: targetLat, lon: targetLon, accuracy: phoneAccuracy})
   },1000)
-  
 });
 
 var arDrone  = require('ar-drone');
@@ -64,10 +61,19 @@ var client = arDrone.createClient();
 client.config('general:navdata_demo', 'FALSE');
 
 var targetLat, targetLon, targetYaw, cyaw, currentLat, currentLon,currentDistance, currentYaw, phoneAccuracy;
+var battery = 0;
+
+var stop = function(){
+  console.log('stop', data)
+  targetYaw = null
+  targetLat = null
+  targetLon = null
+  client.stop()
+}
 
 var handleNavData = function(data){
   if ( data.demo == null || data.gps == null) return;
-  
+  battery = data.demo.batteryPercentage
   currentLat = data.gps.latitude
   currentLon = data.gps.longitude
 
@@ -97,8 +103,9 @@ var handleNavData = function(data){
     client.front(0.05)
   } else {
     targetYaw = null
-    client.stop()
+    io.sockets.emit('waypointReached', {lat: targetLat, lon: targetLon})
     console.log('Reached ', targetLat, targetLon)
+    stop()
   }
 }
 
