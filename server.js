@@ -1,7 +1,6 @@
 var express   = require('express')
   , app       = express()
   , server    = require('http').createServer(app)
-  , io        = require('socket.io').listen(server);
 
 app.use(express.static(__dirname + '/public'));
 app.use(app.router);
@@ -17,6 +16,10 @@ app.get('/phone', function(req, res) {
 server.listen(8080);
 
 require("dronestream").listen(server);
+
+var io  = require('socket.io').listen(server)
+
+io.set('destroy upgrade', false)
 
 io.sockets.on('connection', function(socket) {
   console.log('connection')
