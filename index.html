@@ -39,6 +39,10 @@ body{
   min-width:100px;
   cursor:pointer;
 }
+#drone-position, #phone-position{
+  float:left;
+  width:50%;
+}
 </style>
 <link rel="stylesheet" href="/leaflet.css" />
 
@@ -77,12 +81,11 @@ body{
       Drone: 
       <span class='lat'>0</span>,
       <span class='lon'>0</span>
-      <p>Distance:
-        <span class='distance'>0</span>
-      </p>
-      <p>Battery:
+      <br/>Distance:
+        <span class='distance'>0</span>m
+      <br/>
+      Battery:
         <span class='battery'>0</span>%
-      </p>
     </div>
   </div>
 
