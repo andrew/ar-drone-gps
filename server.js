@@ -24,6 +24,15 @@ io.set('destroy upgrade', false)
 io.sockets.on('connection', function(socket) {
   console.log('connection')
 
+  socket.on('control', function(ev) { 
+    console.log('[control]', JSON.stringify(ev)); 
+    if(ev.action == 'animate'){
+      client.animate(ev.animation, ev.duration)
+    } else {
+      client[ev.action].call(client, ev.speed);
+    }
+  })
+
   socket.on('takeoff', function(data){
     console.log('takeoff', data)
     client.takeoff()
