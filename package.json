@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "ar-drone": "git://github.com/andrew/node-ar-drone.git#gps",
+    "ar-drone": "git://github.com/felixge/node-ar-drone.git#master",
     "node-vincenty": "0.0.6",
     "socket.io": "~0.9.16",
     "express": "~3.4.0",
